@@ -586,6 +586,22 @@ tr:hover td{background:#f8f9ff}
 .b-out{background:#fdecea;color:var(--red)}
 .badge-new{display:inline-block;padding:1px 7px;border-radius:100px;font-size:8.5px;font-weight:800;letter-spacing:.06em;background:var(--green-bg);color:var(--green);vertical-align:middle;margin-left:6px;line-height:1.5}
 
+/* INVENTORY MAKEOVER */
+.inv-stat-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+@media(min-width:560px){.inv-stat-row{grid-template-columns:repeat(4,1fr)}}
+.inv-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;position:relative;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.inv-stat:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(13,47,138,.1)}
+.inv-stat.active{outline:2px solid var(--sc);outline-offset:-2px}
+.inv-stat::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--sc)}
+.inv-stat.is1{--sc:var(--blue)}
+.inv-stat.is2{--sc:var(--green)}
+.inv-stat.is3{--sc:#c07000}
+.inv-stat.is4{--sc:var(--red)}
+.inv-stat-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:5px;font-weight:700}
+.inv-stat-val{font-family:'Barlow Condensed',sans-serif;font-size:1.35rem;font-weight:800;color:var(--sc)}
+tr.inv-row-low td:first-child{box-shadow:inset 3px 0 0 #c07000}
+tr.inv-row-out td:first-child{box-shadow:inset 3px 0 0 var(--red)}
+
 /* ALERT */
 .warn-bar{background:#fff3e0;border:1px solid #ffe0a0;border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.85rem;color:#c07000;font-weight:500}
 .ok-bar{background:var(--green-bg);border:1px solid #a0d8b8;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.875rem;color:var(--green);font-weight:600}
@@ -790,13 +806,11 @@ tr:hover td{background:#f8f9ff}
 .hist-day-totals b.prof{color:var(--blue);font-weight:800;font-size:1rem}
 
 .hist-rows{display:flex;flex-direction:column;gap:10px;position:relative;padding-left:6px}
-.hist-rows::before{content:"";position:absolute;left:23px;top:6px;bottom:6px;width:2px;background:var(--border)}
 
-.hist-row{position:relative;display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px 12px 12px;transition:box-shadow .15s,transform .15s}
-.hist-row:hover{box-shadow:0 4px 16px rgba(13,47,138,.08);transform:translateY(-1px)}
+.hist-row{position:relative;display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px 12px 16px;transition:box-shadow .15s,transform .15s;box-shadow:inset 4px 0 0 var(--row-accent,transparent)}
+.hist-row:hover{box-shadow:inset 4px 0 0 var(--row-accent,transparent),0 4px 16px rgba(13,47,138,.08);transform:translateY(-1px)}
 .hist-chk{width:16px;height:16px;cursor:pointer;accent-color:#6c5ce7;flex-shrink:0;align-self:center}
 .hist-rail{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;width:28px;position:relative;z-index:1}
-.hist-dot{width:13px;height:13px;border-radius:50%;background:var(--dot-clr,var(--green));border:2px solid var(--surface);box-shadow:0 0 0 2px var(--dot-clr,var(--green))}
 .hist-time{font-size:.66rem;color:var(--muted);font-weight:700;white-space:nowrap}
 .hist-info{flex:1;min-width:0}
 .hist-name{font-weight:700;font-size:.92rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -963,9 +977,33 @@ tr:hover td{background:#f8f9ff}
 <div class="page" id="p-stock">
   <div class="pg-title">Inventory</div>
   <div class="pg-sub">Manage products, pricing & stock levels</div>
+
+  <div class="inv-stat-row">
+    <div class="inv-stat is1" onclick="setInvStatFilter('')" id="inv-stat-all">
+      <div class="inv-stat-lbl">Products</div>
+      <div class="inv-stat-val" id="inv-stat-total">0</div>
+    </div>
+    <div class="inv-stat is2" onclick="setInvStatFilter('')" id="inv-stat-value-card">
+      <div class="inv-stat-lbl">Stock Value</div>
+      <div class="inv-stat-val" id="inv-stat-value" style="font-size:1.1rem;">GH₵0</div>
+    </div>
+    <div class="inv-stat is3" onclick="setInvStatFilter('low')" id="inv-stat-low-card">
+      <div class="inv-stat-lbl">Low Stock</div>
+      <div class="inv-stat-val" id="inv-stat-low">0</div>
+    </div>
+    <div class="inv-stat is4" onclick="setInvStatFilter('out')" id="inv-stat-out-card">
+      <div class="inv-stat-lbl">Out of Stock</div>
+      <div class="inv-stat-val" id="inv-stat-out">0</div>
+    </div>
+  </div>
+
   <div class="tbl-wrap">
     <div class="tbl-hdr">
-      <span>Current Stock</span><span id="stock-lbl" style="font-size:.8rem;opacity:.7"></span>
+      <span>Current Stock</span>
+      <span style="display:flex;align-items:center;gap:12px;">
+        <span id="stock-lbl" style="font-size:.8rem;opacity:.7"></span>
+        <button class="btn btn-sm" style="background:#fff;color:var(--blue);padding:5px 12px;" onclick="openAddItem()">➕ Add Product</button>
+      </span>
     </div>
     <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <input id="inv-search" placeholder="🔍 Search products..." oninput="renderInv()" style="flex:1;min-width:160px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;">
@@ -982,8 +1020,17 @@ tr:hover td{background:#f8f9ff}
         <option value="out">Out of Stock</option>
       </select>
     </div>
-    <table><thead><tr><th>Product</th><th>Category</th><th>Cost</th><th>Sell</th><th>Margin</th><th>Qty</th><th>Status</th><th></th></tr></thead>
+    <div style="overflow-x:auto;">
+    <table><thead><tr>
+      <th>Product</th>
+      <th>Category</th>
+      <th>Cost</th>
+      <th>Sell</th>
+      <th>Margin</th>
+      <th>Qty</th>
+      <th>Status</th><th></th></tr></thead>
     <tbody id="inv-body"></tbody></table>
+    </div>
   </div>
 </div>
 
@@ -2255,11 +2302,37 @@ function go(tab,el){
 
 /* ---- INVENTORY ---- */
 function delItem(id){if(!confirm('Remove?'))return;inv=inv.filter(i=>i.id!==id);save();renderInv();}
+let _invStatFilter='';
+
+function setInvStatFilter(status){
+  _invStatFilter=status;
+  const sel=$('inv-filter-status');
+  if(sel)sel.value=status;
+  renderInv();
+}
+
 function renderInv(){
   const q=($('inv-search')||{value:''}).value.trim().toLowerCase();
   const cat=($('inv-filter-cat')||{value:''}).value;
-  const status=($('inv-filter-status')||{value:''}).value;
+  const status=($('inv-filter-status')||{value:_invStatFilter}).value;
   const rMap=getReorderMap(); // velocity-based urgency: 'ok' | 'warning' | 'urgent' | 'out'
+
+  // Stat bar (computed from full inventory, not the filtered list)
+  const totalValue=inv.reduce((a,i)=>a+(i.qty*i.cost),0);
+  let lowCount=0,outCount=0;
+  inv.forEach(i=>{
+    const urg=(rMap[i.id]||{}).urgency||'ok';
+    if(urg==='warning'||urg==='urgent')lowCount++;
+    if(urg==='out')outCount++;
+  });
+  if($('inv-stat-total'))$('inv-stat-total').textContent=inv.length;
+  if($('inv-stat-value'))$('inv-stat-value').textContent=fmt(totalValue);
+  if($('inv-stat-low'))$('inv-stat-low').textContent=lowCount;
+  if($('inv-stat-out'))$('inv-stat-out').textContent=outCount;
+  ['inv-stat-low-card','inv-stat-out-card'].forEach(id=>{const el=$(id);if(el)el.classList.remove('active');});
+  if(status==='low'&&$('inv-stat-low-card'))$('inv-stat-low-card').classList.add('active');
+  if(status==='out'&&$('inv-stat-out-card'))$('inv-stat-out-card').classList.add('active');
+
   let list=inv.filter(i=>{
     if(q&&!i.name.toLowerCase().includes(q)&&!i.cat.toLowerCase().includes(q))return false;
     if(cat&&i.cat!==cat)return false;
@@ -2269,9 +2342,18 @@ function renderInv(){
     if(status==='out'&&urg!=='out')return false;
     return true;
   });
+
+  // Fixed sort: numbers-first, then alphabetical by product name
+  list=list.slice().sort((a,b)=>{
+    const av=a.name.toLowerCase(),bv=b.name.toLowerCase();
+    if(av<bv)return -1;
+    if(av>bv)return 1;
+    return 0;
+  });
+
   $('stock-lbl').textContent=list.length+' / '+inv.length+' products';
   const b=$('inv-body');
-  if(!list.length){b.innerHTML='<tr class="empty-row"><td colspan="9">No products match</td></tr>';return;}
+  if(!list.length){b.innerHTML='<tr class="empty-row"><td colspan="8">No products match</td></tr>';return;}
   b.innerHTML=list.map(i=>{
     const mg=i.sell>0?(((i.sell-i.cost)/i.sell)*100).toFixed(0)+'%':'\u2014';
     const urg=(rMap[i.id]||{}).urgency||'ok';
@@ -2279,7 +2361,8 @@ function renderInv(){
     const daysTitle=rInfo&&rInfo.daysLeft!==null?` title="~${Math.max(1,Math.round(rInfo.daysLeft))} day(s) of stock left at current sales pace"`:'';
     const st=urg==='out'?'<span class="badge b-out">OUT</span>':urg==='urgent'?`<span class="badge b-low"${daysTitle}>URGENT</span>`:urg==='warning'?`<span class="badge b-low"${daysTitle}>SOON</span>`:'<span class="badge b-ok">OK</span>';
     const newBadge=isRecentlyRestocked(i)?'<span class="badge-new" title="Restocked '+i.lastRestockDate+(i.lastRestockQty?' — +'+i.lastRestockQty+' units added':'')+'">NEW'+(i.lastRestockQty?' +'+i.lastRestockQty:'')+'</span>':'';
-    return`<tr><td><strong>${i.name}</strong>${newBadge}</td><td>${i.cat}</td><td>${fmt(i.cost)}</td><td>${fmt(i.sell)}</td><td style="color:var(--green)">${mg}</td><td><strong>${i.qty}</strong></td><td>${st}</td><td style="display:flex;gap:4px;"><button class="btn btn-blue btn-sm" onclick="openEditItem(${i.id})" title="Edit">✏️</button><button class="btn btn-danger btn-sm" onclick="delItem(${i.id})">\u2715</button></td></tr>`;
+    const rowCls=urg==='out'?'inv-row-out':(urg==='warning'||urg==='urgent')?'inv-row-low':'';
+    return`<tr class="${rowCls}"><td><strong>${i.name}</strong>${newBadge}</td><td>${i.cat}</td><td>${fmt(i.cost)}</td><td>${fmt(i.sell)}</td><td style="color:var(--green)">${mg}</td><td><strong>${i.qty}</strong></td><td>${st}</td><td style="display:flex;gap:4px;"><button class="btn btn-blue btn-sm" onclick="openEditItem(${i.id})" title="Edit">✏️</button><button class="btn btn-danger btn-sm" onclick="delItem(${i.id})">\u2715</button></td></tr>`;
   }).join('');
 }
 
@@ -4069,11 +4152,10 @@ function renderLog(){
       const noteHtml=t.note?`<div class="hist-note">👤 ${t.note}</div>`:'';
       const staffHtml=t.staffName?`<span class="hist-staff">${t.staffName}</span>`:'';
 
-      return`<div id="txn-row-${t.id}" class="hist-row">
+      return`<div id="txn-row-${t.id}" class="hist-row" style="--row-accent:${profitPositive?'var(--green)':'var(--red)'};">
         <input type="checkbox" class="log-row-chk hist-chk" data-id="${t.id}" onchange="updateLogSelection()">
-        <!-- Timeline rail: colored dot + time -->
+        <!-- Timeline rail: time -->
         <div class="hist-rail">
-          <div class="hist-dot" style="--dot-clr:${profitPositive?'var(--green)':'var(--red)'};"></div>
           <span class="hist-time">${time}</span>
         </div>
         <!-- Item info -->
@@ -5256,29 +5338,62 @@ function shareLastSaleReceipt(t){
 }
 
 /* ---- EDIT ITEM (Feature 6) ---- */
+let _isAddingItem=false;
 function openEditItem(id){
   id=parseInt(id);
   const item=inv.find(i=>i.id===id);
   if(!item){console.error('openEditItem: item not found',id);return;}
   _editId=id;
+  _isAddingItem=false;
   document.getElementById('edit-name').value=item.name;
   document.getElementById('edit-cost').value=item.cost;
   document.getElementById('edit-sell').value=item.sell;
   document.getElementById('edit-qty').value=item.qty;
   const catSel=document.getElementById('edit-cat');
   if(catSel)catSel.value=item.cat;
+  const titleEl=document.getElementById('edit-modal-title');
+  if(titleEl)titleEl.textContent='✏️ Edit Product';
+  const saveBtn=document.getElementById('edit-modal-save-btn');
+  if(saveBtn)saveBtn.textContent='💾 Save Changes';
   const modal=document.getElementById('edit-modal');
   if(modal){modal.style.display='flex';modal.classList.add('open');}
 }
-function closeEditModal(){const m=document.getElementById('edit-modal');if(m){m.classList.remove('open');m.style.display='none';}_editId=null;}
+function openAddItem(){
+  _editId=null;
+  _isAddingItem=true;
+  document.getElementById('edit-name').value='';
+  document.getElementById('edit-cost').value='';
+  document.getElementById('edit-sell').value='';
+  document.getElementById('edit-qty').value='';
+  const catSel=document.getElementById('edit-cat');
+  if(catSel)catSel.selectedIndex=0;
+  const titleEl=document.getElementById('edit-modal-title');
+  if(titleEl)titleEl.textContent='➕ Add Product';
+  const saveBtn=document.getElementById('edit-modal-save-btn');
+  if(saveBtn)saveBtn.textContent='➕ Add Product';
+  const modal=document.getElementById('edit-modal');
+  if(modal){modal.style.display='flex';modal.classList.add('open');}
+  setTimeout(()=>document.getElementById('edit-name').focus(),50);
+}
+function closeEditModal(){const m=document.getElementById('edit-modal');if(m){m.classList.remove('open');m.style.display='none';}_editId=null;_isAddingItem=false;}
 function saveEditItem(){
-  const item=inv.find(i=>i.id===_editId);if(!item)return;
   const name=document.getElementById('edit-name').value.trim();
   const cost=parseFloat(document.getElementById('edit-cost').value);
   const sell=parseFloat(document.getElementById('edit-sell').value);
   const qty=parseInt(document.getElementById('edit-qty').value);
   const cat=document.getElementById('edit-cat').value;
   if(!name||isNaN(cost)||isNaN(sell)||isNaN(qty))return alert('Fill all fields');
+
+  if(_isAddingItem){
+    const dup=inv.find(i=>i.name.toLowerCase()===name.toLowerCase());
+    if(dup)return alert(`"${name}" already exists`);
+    const newId=(inv.length?Math.max(...inv.map(i=>i.id)):1700000000000)+1;
+    inv.push({id:newId,name,cost,sell,qty,cat});
+    save();renderInv();loadSellDrop();closeEditModal();
+    return;
+  }
+
+  const item=inv.find(i=>i.id===_editId);if(!item)return;
   const dup=inv.find(i=>i.id!==_editId&&i.name.toLowerCase()===name.toLowerCase());
   if(dup)return alert(`"${name}" already exists`);
   item.name=name;item.cost=cost;item.sell=sell;item.qty=qty;item.cat=cat;
@@ -7099,7 +7214,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 <!-- ===== EDIT ITEM MODAL ===== -->
 <div id="edit-modal" class="modal-overlay" onclick="if(event.target===this)closeEditModal()">
   <div class="modal-box" style="max-width:420px;">
-    <div class="modal-hdr"><span>✏️ Edit Product</span><button class="modal-close" onclick="closeEditModal()">✕</button></div>
+    <div class="modal-hdr"><span id="edit-modal-title">✏️ Edit Product</span><button class="modal-close" onclick="closeEditModal()">✕</button></div>
     <div style="padding:20px;display:flex;flex-direction:column;gap:13px;">
       <div class="field"><label>Product Name</label><input id="edit-name" placeholder="Product name"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -7110,7 +7225,7 @@ window.addEventListener('DOMContentLoaded',()=>{
         <div class="field"><label>Quantity</label><input type="number" id="edit-qty" placeholder="0"></div>
         <div class="field"><label>Category</label><select id="edit-cat"><option>Bulbs</option><option>Switches</option><option>Sockets</option><option>Cables & Wire</option><option>Conduit & Trunking</option><option>Fans</option><option>Pattress Boxes</option><option>Other</option></select></div>
       </div>
-      <button class="btn btn-blue" onclick="saveEditItem()" style="margin-top:4px;">💾 Save Changes</button>
+      <button class="btn btn-blue" id="edit-modal-save-btn" onclick="saveEditItem()" style="margin-top:4px;">💾 Save Changes</button>
     </div>
   </div>
 </div>
