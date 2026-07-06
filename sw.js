@@ -6,12 +6,15 @@
 // (it is registered with a relative path, './sw.js', so its scope covers
 // everything in that folder).
 
-const CACHE_NAME = 'ikb-shop-shell-v1';
+const CACHE_NAME = 'ikb-shop-shell-v2';
 
 // The app shell + every external resource the page depends on.
 // These are fetched and stored the first time the app is opened online.
+// NOTE: we deliberately do NOT include './' here. cache.addAll() is
+// all-or-nothing — if a bare './' request 404s/redirects on your host,
+// the ENTIRE install fails and index.html never gets cached, which is
+// why offline refresh was falling through to Chrome's own offline page.
 const APP_SHELL = [
-  './',
   './index.html'
 ];
 
@@ -56,23 +59,37 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
 
-  // Page navigations: always resolve to the cached app shell so the app
-  // can launch with zero network. Refresh the cache in the background.
+  // Page navigations (including refresh): always resolve to a real,
+  // valid Response — cached app shell first, so the app launches/refreshes
+  // with zero network. Refresh the cache in the background when online.
   if (req.mode === 'navigate') {
-    e.respondWith(
-      caches.match('./index.html').then(cached => {
-        const network = fetch(req)
-          .then(res => {
-            if (res && res.ok) {
-              const clone = res.clone();
-              caches.open(CACHE_NAME).then(c => c.put('./index.html', clone));
-            }
-            return res;
-          })
-          .catch(() => null);
-        return cached || network || caches.match('./');
-      })
-    );
+    e.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match('./index.html');
+
+      // Fire off a network refresh in the background (don't block on it,
+      // don't let its rejection propagate — a failed background refresh
+      // must never turn into a null/undefined response to respondWith).
+      const networkRefresh = fetch(req)
+        .then(res => {
+          if (res && res.ok) cache.put('./index.html', res.clone());
+          return res;
+        })
+        .catch(() => null);
+
+      if (cached) return cached;
+
+      // Nothing cached yet (e.g. very first launch): wait for network.
+      const fresh = await networkRefresh;
+      if (fresh) return fresh;
+
+      // Truly nothing available — return a real Response, never null,
+      // so Chrome renders this instead of its own offline interstitial.
+      return new Response(
+        '<h1>Offline</h1><p>Open this app once while online, then it will work offline.</p>',
+        { status: 200, headers: { 'Content-Type': 'text/html' } }
+      );
+    })());
     return;
   }
 
