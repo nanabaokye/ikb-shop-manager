@@ -47,10 +47,17 @@ self.addEventListener('install', e => {
   );
 });
 
+// Keep the immediately-previous cache around as a safety net. If an
+// update's install step doesn't finish re-caching every runtime asset
+// before you go offline, the old cache still has them, and the
+// "everything else" handler below (which searches ALL caches) will
+// still find fonts/Chart.js/Firebase/etc instead of coming up empty.
+const KEEP_CACHES = [CACHE_NAME, 'ikb-shop-shell-v1'];
+
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => !KEEP_CACHES.includes(k)).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
