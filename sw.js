@@ -6,7 +6,7 @@
 // (it is registered with a relative path, './sw.js', so its scope covers
 // everything in that folder).
 
-const CACHE_NAME = 'ikb-shop-shell-v2';
+const CACHE_NAME = 'ikb-shop-shell-v3';
 
 // The app shell + every external resource the page depends on.
 // These are fetched and stored the first time the app is opened online.
@@ -18,8 +18,10 @@ const APP_SHELL = [
   './index.html'
 ];
 
+const FONT_CSS_URL = 'https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@700;800&display=swap';
+
 const RUNTIME_SEEDS = [
-  'https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@700;800&display=swap',
+  FONT_CSS_URL,
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
   'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
@@ -28,6 +30,28 @@ const RUNTIME_SEEDS = [
   'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js'
 ];
 
+// The Google Fonts CSS above only contains @font-face rules pointing to
+// the ACTUAL font files on fonts.gstatic.com (a different domain, with
+// URLs that change over time). Caching the CSS alone doesn't cache those
+// files, so without this, offline pages fell back to a system font.
+async function cacheGoogleFonts(cache) {
+  try {
+    const cssRes = await fetch(FONT_CSS_URL, { mode: 'cors' });
+    if (!cssRes || !cssRes.ok) return;
+    const cssText = await cssRes.clone().text();
+    await cache.put(FONT_CSS_URL, cssRes);
+
+    const fontUrls = Array.from(cssText.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/g))
+      .map(m => m[1]);
+
+    await Promise.all(fontUrls.map(url =>
+      fetch(url, { mode: 'cors' })
+        .then(res => { if (res && res.ok) return cache.put(url, res); })
+        .catch(() => {})
+    ));
+  } catch (e) { /* best-effort */ }
+}
+
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(
@@ -35,13 +59,14 @@ self.addEventListener('install', e => {
       // Cache the app shell first (must succeed for offline launch to work).
       return cache.addAll(APP_SHELL).then(() =>
         // Best-effort cache of CDN assets — don't fail install if one is blocked.
-        Promise.all(
-          RUNTIME_SEEDS.map(url =>
+        Promise.all([
+          cacheGoogleFonts(cache),
+          ...RUNTIME_SEEDS.filter(url => url !== FONT_CSS_URL).map(url =>
             fetch(url, { mode: 'cors' })
               .then(res => { if (res && res.ok) return cache.put(url, res); })
               .catch(() => {})
           )
-        )
+        ])
       );
     })
   );
@@ -52,7 +77,7 @@ self.addEventListener('install', e => {
 // before you go offline, the old cache still has them, and the
 // "everything else" handler below (which searches ALL caches) will
 // still find fonts/Chart.js/Firebase/etc instead of coming up empty.
-const KEEP_CACHES = [CACHE_NAME, 'ikb-shop-shell-v1'];
+const KEEP_CACHES = [CACHE_NAME, 'ikb-shop-shell-v2', 'ikb-shop-shell-v1'];
 
 self.addEventListener('activate', e => {
   e.waitUntil(
